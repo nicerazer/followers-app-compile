@@ -1,59 +1,83 @@
 const { watch, src, dest, parallel } = require('gulp'),
-        sass    = require('gulp-sass'),
-        cssnano = require('gulp-cssnano'),
-        concat = require('gulp-concat'),
-        rename  = require('gulp-rename'),
-        uglify = require('gulp-uglify');
+        webserver = require('gulp-webserver'),
+        twig      = require('gulp-twig'),
+        sass      = require('gulp-sass'),
+        cssnano   = require('gulp-cssnano'),
+        concat    = require('gulp-concat'),
+        rename    = require('gulp-rename'),
+        uglify    = require('gulp-uglify');
 
-function processTokeyFollower(){
-  return src('../workstation/tokeyfollower/src/scss/main.scss')
-  .pipe(rename("style.scss"))
+const workpath = './_workstation/';
+
+const processStyleSheet = site => {
+  console.log("Processing stylesheet: %s" , site);
+  console.log(`${workpath}${site}/src/scss/main.scss`);
+  return src(`${workpath}${site}/src/scss/main.scss`)
+  .pipe(rename('style.scss'))
   .pipe(sass().on('error', sass.logError))
-  .pipe(dest('../workstation/tokeyfollower/src/css/'))
+  .pipe(dest(`${workpath}${site}/src/css/`))
   .pipe(cssnano())
-  .pipe(dest('../workstation/tokeyfollower/src/dist/'));
+  .pipe(dest(`${workpath}${site}/src/dist/`));
 }
 
-function processKakiFollower(){
-  return src('../workstation/kakifollower/src/scss/main.scss')
-  .pipe(rename("style.scss"))
-  .pipe(sass().on('error', sass.logError))
-  .pipe(dest('../workstation/kakifollower/src/css/'))
-  .pipe(cssnano())
-  .pipe(dest('../workstation/kakifollower/src/dist/'));
-}
-
-function processKakiJsFiles(){
-  var directory = '../workstation/kakifollower/src/js/';
-  var files = [
-    '../workstation/kakifollower/src/js/aos.js',
-    '../workstation/kakifollower/src/js/lighslider.js',
-    '../workstation/kakifollower/src/js/script.js',
-  ];
-  return src(['../workstation/kakifollower/src/js/aos.js',
-  '../workstation/kakifollower/src/js/lightslider.js',
-  '../workstation/kakifollower/src/js/script.js'])
+const processKakiJsFiles = () => {
+  console.log("Processing Kaki Js Files");
+  let directory = 'kakifollower/src/';
+  return src([
+    `${workpath}${directory}js/aos.js`,
+    `${workpath}${directory}js/lightslider.js`,
+    `${workpath}${directory}js/script.js`])
   .pipe(concat('all.js'))
   .pipe(uglify())
-  .pipe(dest('../workstation/kakifollower/src/dist/'));
+  .pipe(dest(`${workpath}${directory}dist/`));
 }
 
-function init(){
-  // Transfer vendor items from node modules into each folder
-  // var lightslider = [
-  //   './node_modules/lightslider/src/css',
-  //   './node_modules/lightslider/src/img',
-  //   './node_modules/lightslider/src/js'
-  // ]
-  // return src(lightslider, { base: 'src' })
-  // .pipe(dest('../workstation/tokeyfollower/src/scss/vendor/'))
-  // .pipe(dest('../workstation/kakifollower/src/scss/vendor/'));
+const processTwig = (_path, _data) => {
+  console.log("Processing twig");
+  return src(_path)
+  .pipe(twig({
+    data: _data
+  }))
+  .pipe(dest(`${workpath}${directory}twig/compiled/`));
 }
 
-exports.default = function(){
-  init();
+exports.default = done => {
+  let site = ['tokeyfollower', 'kakifollower'];
   processKakiJsFiles();
-  watch('../workstation/commons/sass/*.scss', parallel(processTokeyFollower, processKakiFollower));
-  watch('../workstation/tokeyfollower/src/scss/**/*.scss', processTokeyFollower);
-  watch('../workstation/kakifollower/src/scss/**/*.scss', processKakiFollower);
+  // THIS IS CLOSURE!!!! :D
+  console.log("Watch commons");
+  watch(`${workpath}commons/sass/*.scss`, parallel(
+    // We pass in anonymous arrow functions as callback functions
+    (() => processStyleSheet(site[0])),
+    (() => processStyleSheet(site[1]))
+  ));
+  console.log("Pre sass");
+  site.forEach((i, iteration) => {
+    console.log(`Process sass of ${iteration}`);
+    console.log("Watch main");
+    processStyleSheet(i);
+    watch(`${workpath}${i}/src/scss/**/*.scss`, () => processStyleSheet(i) );
+  });
+  console.log("Post sass");
+  src(`./`)
+  .pipe(webserver({
+    livereload: true,
+    directoryListing: true,
+    // open:`http://localhost:8000/_workstation/${site[0]}/content-home.html`
+  }));
+  done();
 }
+
+/*
+const processVendor = () => {
+  Transfer vendor items from node modules into each folder
+  var lightslider = [
+    './node_modules/lightslider/src/css',
+    './node_modules/lightslider/src/img',
+    './node_modules/lightslider/src/js'
+  ]
+  return src(lightslider, { base: 'src' })
+  .pipe(dest('../workstation/tokeyfollower/src/scss/vendor/'))
+  .pipe(dest('../workstation/kakifollower/src/scss/vendor/'));
+}
+*/
