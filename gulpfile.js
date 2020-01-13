@@ -53,7 +53,7 @@ exports.default = done => {
   ));
   console.log("Pre sass");
   site.forEach((i, iteration) => {
-    console.log(`Process sass of ${iteration}`);
+    console.log(`Processing sass for ${iteration}`);
     console.log("Watch main");
     processStyleSheet(i);
     watch(`${workpath}${i}/src/scss/**/*.scss`, () => processStyleSheet(i) );
@@ -63,7 +63,7 @@ exports.default = done => {
   .pipe(webserver({
     livereload: true,
     directoryListing: true,
-    // open:`http://localhost:8000/_workstation/${site[0]}/content-home.html`
+    open:`http://localhost:8000/_workstation/${site[0]}/content-home.html`
   }));
   done();
 }
