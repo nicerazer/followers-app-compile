@@ -1,4 +1,6 @@
 const { watch, src, dest, parallel } = require('gulp'),
+        fancyLog  = require('fancy-log'),
+        logger    = require('gulp-logger'),
         webserver = require('gulp-webserver'),
         twig      = require('gulp-twig'),
         sass      = require('gulp-sass'),
@@ -9,54 +11,66 @@ const { watch, src, dest, parallel } = require('gulp'),
 
 const workpath = './_workstation/';
 
-const processStyleSheet = site => {
-  console.log("Processing stylesheet: %s" , site);
-  console.log(`${workpath}${site}/src/scss/main.scss`);
+const compileStyleSheet = site => {
   return src(`${workpath}${site}/src/scss/main.scss`)
-  .pipe(rename('style.scss'))
-  .pipe(sass().on('error', sass.logError))
-  .pipe(dest(`${workpath}${site}/src/css/`))
-  .pipe(cssnano())
-  .pipe(dest(`${workpath}${site}/src/dist/`));
+    .pipe(logger({
+      before: `Sass start compilation : ${site}`,
+      after: `Sass end compilation : ${site}`,
+      extname: `.scss`,
+    }))
+    .pipe(rename('style.scss'))
+    .pipe(sass().on('error', sass.logError))
+    .pipe(dest(`${workpath}${site}/src/css/`))
+    .pipe(cssnano())
+    .pipe(dest(`${workpath}${site}/src/dist/`));
 }
 
-const processKakiJsFiles = () => {
-  console.log("Processing Kaki Js Files");
+const compileKakiJsFiles = () => {
+  // console.log("Processing Kaki Js Files");
   let directory = 'kakifollower/src/';
   return src([
     `${workpath}${directory}js/aos.js`,
     `${workpath}${directory}js/lightslider.js`,
     `${workpath}${directory}js/script.js`])
+  .pipe(logger({
+    before: `JS start compilation : KakiFollower`,
+    after: `JS end compilation : KakiFollower`,
+    extname: `.js`,
+  }))
   .pipe(concat('all.js'))
   .pipe(uglify())
   .pipe(dest(`${workpath}${directory}dist/`));
 }
 
 const processTwig = (_path, _data) => {
-  console.log("Processing twig");
   return src(_path)
   .pipe(twig({
     data: _data
+  }))
+  .pipe(logger({
+    before: `Twig compilation : ?`,
+    after: `Twig : ?`,
+    extname: `.twig`,
   }))
   .pipe(dest(`${workpath}${directory}twig/compiled/`));
 }
 
 exports.default = done => {
-  let site = ['tokeyfollower', 'kakifollower'];
-  processKakiJsFiles();
+  const site = ['tokeyfollower', 'kakifollower'];
+  compileKakiJsFiles();
   // THIS IS CLOSURE!!!! :D
   console.log("Watch commons");
   watch(`${workpath}commons/sass/*.scss`, parallel(
     // We pass in anonymous arrow functions as callback functions
-    (() => processStyleSheet(site[0])),
-    (() => processStyleSheet(site[1]))
+    (() => compileStyleSheet(site[0])),
+    (() => compileStyleSheet(site[1]))
   ));
   console.log("Pre sass");
   site.forEach((i, iteration) => {
-    console.log(`Processing sass for ${iteration}`);
-    console.log("Watch main");
-    processStyleSheet(i);
-    watch(`${workpath}${i}/src/scss/**/*.scss`, () => processStyleSheet(i) );
+    // console.log(`Processing sass for ${iteration}`);
+    // console.log("Watch main");
+    compileStyleSheet(i);
+    watch(`${workpath}${i}/src/scss/**/*.scss`, () => compileStyleSheet(i));
   });
   console.log("Post sass");
   src(`./`)
