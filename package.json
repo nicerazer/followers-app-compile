@@ -19,7 +19,7 @@
     "gulp-twig": "^1.2.0",
     "gulp-uglify": "^3.0.2",
     "gulp-webserver": "^0.9.1",
-    "node-sass": "^4.13.0"
+    "node-sass": "^4.13.1"
   },
   "dependencies": {
     "aos": "^2.3.4",
